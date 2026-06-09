@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>挖雷</title>
+<style>
+* { margin: 0; padding: 0; -webkit-box-sizing: border-box; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: #1a1a2e;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── Header ── */
+#header {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 52px;
+  background: #16213e;
+  border-bottom: 1px solid rgba(100,120,200,0.2);
+}
+
+#title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #e0e8ff;
+  letter-spacing: 0.1em;
+}
+
+#stats {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  gap: 20px;
+  -webkit-align-items: center;
+  align-items: center;
+}
+
+.stat-block {
+  text-align: center;
+}
+.stat-val {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: #a0c4ff;
+  line-height: 1;
+}
+.stat-label {
+  font-size: 10px;
+  color: rgba(140,160,220,0.5);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Mode + Controls ── */
+#controls {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #16213e;
+  border-bottom: 1px solid rgba(100,120,200,0.15);
+}
+
+.mode-btn {
+  -webkit-flex: 1;
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(30,40,80,0.7);
+  color: rgba(160,180,240,0.6);
+  border-color: rgba(80,100,180,0.2);
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+.mode-btn.active-dig {
+  background: rgba(50,100,200,0.3);
+  color: #80b4ff;
+  border-color: rgba(80,140,240,0.6);
+}
+
+.mode-btn.active-flag {
+  background: rgba(200,80,60,0.25);
+  color: #ff8870;
+  border-color: rgba(220,100,80,0.5);
+}
+
+#btn-new {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(100,120,200,0.3);
+  background: rgba(30,40,80,0.7);
+  color: rgba(160,180,240,0.7);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+.diff-btn {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(80,100,160,0.25);
+  background: rgba(20,30,65,0.7);
+  color: rgba(130,155,210,0.6);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+.diff-btn.active {
+  background: rgba(40,60,130,0.6);
+  color: #90aaee;
+  border-color: rgba(100,130,220,0.5);
+}
+
+/* ── Board area ── */
+#board-wrap {
+  position: absolute;
+  top: 108px;
+  left: 0; right: 0; bottom: 0;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#board {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  gap: 2px;
+}
+
+.cell {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #2a3560;
+  border: 1px solid rgba(80,100,180,0.4);
+  -webkit-transition: background 0.08s;
+  transition: background 0.08s;
+  position: relative;
+}
+
+.cell.hidden {
+  background: #2a3560;
+  border-color: rgba(80,100,180,0.4);
+}
+
+.cell.hidden:active {
+  background: #354070;
+}
+
+.cell.revealed {
+  background: rgba(15,20,45,0.8);
+  border-color: rgba(50,65,120,0.3);
+}
+
+.cell.flagged {
+  background: rgba(180,60,50,0.2);
+  border-color: rgba(200,80,70,0.4);
+}
+
+.cell.mine-hit {
+  background: rgba(220,50,40,0.7);
+  border-color: #e05040;
+}
+
+.cell.mine-shown {
+  background: rgba(60,20,20,0.6);
+  border-color: rgba(160,60,50,0.4);
+}
+
+/* Number colors */
+.n1 { color: #6ab0ff; }
+.n2 { color: #5de87a; }
+.n3 { color: #ff7060; }
+.n4 { color: #c080ff; }
+.n5 { color: #ff9940; }
+.n6 { color: #40e0d0; }
+.n7 { color: #ff60a0; }
+.n8 { color: #c0c0c0; }
+
+/* ── Overlay ── */
+#overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10,12,30,0.85);
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  z-index: 100;
+}
+
+#overlay.show {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+}
+
+#overlay-icon { font-size: 60px; margin-bottom: 16px; }
+#overlay-msg  { font-size: 28px; font-weight: 700; color: #e0e8ff; margin-bottom: 8px; }
+#overlay-sub  { font-size: 15px; color: rgba(160,180,240,0.6); margin-bottom: 28px; }
+#overlay-btn  {
+  padding: 14px 40px;
+  background: rgba(60,90,200,0.4);
+  border: 2px solid rgba(100,140,240,0.5);
+  border-radius: 10px;
+  color: #a0c0ff;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="title">💣 挖雷</div>
+  <div id="stats">
+    <div class="stat-block">
+      <div class="stat-val" id="mine-count">0</div>
+      <div class="stat-label">剩余雷</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-val" id="timer">0</div>
+      <div class="stat-label">秒</div>
+    </div>
+  </div>
+</div>
+
+<div id="controls">
+  <button class="mode-btn active-dig" id="btn-dig" onclick="setMode('dig')">⛏ 挖</button>
+  <button class="mode-btn" id="btn-flag" onclick="setMode('flag')">🚩 旗</button>
+  <button class="diff-btn active" id="diff-easy" onclick="setDiff('easy')">初级</button>
+  <button class="diff-btn" id="diff-med"  onclick="setDiff('med')">中级</button>
+  <button class="diff-btn" id="diff-hard" onclick="setDiff('hard')">高级</button>
+  <button id="btn-new" onclick="newGame()">重新开始</button>
+</div>
+
+<div id="board-wrap">
+  <div id="board"></div>
+</div>
+
+<div id="overlay">
+  <div id="overlay-icon"></div>
+  <div id="overlay-msg"></div>
+  <div id="overlay-sub"></div>
+  <button id="overlay-btn" onclick="newGame()">再来一局</button>
+</div>
+
+<script>
+// ── Config ──
+var DIFFS = {
+  easy: { rows: 9,  cols: 9,  mines: 10 },
+  med:  { rows: 12, cols: 16, mines: 30 },
+  hard: { rows: 14, cols: 20, mines: 50 }
+};
+
+var currentDiff = 'easy';
+var mode = 'dig'; // 'dig' | 'flag'
+var board = [];
+var revealed = [];
+var flagged = [];
+var minePos = [];
+var rows, cols, totalMines;
+var gameState = 'idle'; // idle | playing | won | lost
+var timerInterval = null;
+var seconds = 0;
+var firstClick = true;
+var cellSize = 36;
+
+// ── Mode ──
+function setMode(m) {
+  mode = m;
+  var digBtn  = document.getElementById('btn-dig');
+  var flagBtn = document.getElementById('btn-flag');
+  if (m === 'dig') {
+    digBtn.className  = 'mode-btn active-dig';
+    flagBtn.className = 'mode-btn';
+  } else {
+    digBtn.className  = 'mode-btn';
+    flagBtn.className = 'mode-btn active-flag';
+  }
+}
+
+// ── Difficulty ──
+function setDiff(d) {
+  currentDiff = d;
+  var ids = ['easy','med','hard'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById('diff-' + ids[i]);
+    el.className = 'diff-btn' + (ids[i] === d ? ' active' : '');
+  }
+  newGame();
+}
+
+// ── Timer ──
+function startTimer() {
+  stopTimer();
+  seconds = 0;
+  document.getElementById('timer').textContent = '0';
+  timerInterval = setInterval(function() {
+    seconds++;
+    document.getElementById('timer').textContent = '' + seconds;
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+// ── Board init ──
+function newGame() {
+  stopTimer();
+  firstClick = true;
+  gameState = 'idle';
+  seconds = 0;
+  document.getElementById('timer').textContent = '0';
+  document.getElementById('overlay').className = '';
+
+  var cfg = DIFFS[currentDiff];
+  rows = cfg.rows; cols = cfg.cols; totalMines = cfg.mines;
+
+  board    = [];
+  revealed = [];
+  flagged  = [];
+  minePos  = [];
+
+  for (var r = 0; r < rows; r++) {
+    board.push([]);
+    revealed.push([]);
+    flagged.push([]);
+    for (var c = 0; c < cols; c++) {
+      board[r].push(0);
+      revealed[r].push(false);
+      flagged[r].push(false);
+    }
+  }
+
+  document.getElementById('mine-count').textContent = '' + totalMines;
+  calcCellSize();
+  renderBoard();
+}
+
+function calcCellSize() {
+  var wrap = document.getElementById('board-wrap');
+  var availW = wrap.offsetWidth - 16;
+  var availH = wrap.offsetHeight - 16;
+  var byW = Math.floor((availW - (cols - 1) * 2) / cols);
+  var byH = Math.floor((availH - (rows - 1) * 2) / rows);
+  cellSize = Math.max(22, Math.min(44, Math.min(byW, byH)));
+}
+
+function placeMines(safeR, safeC) {
+  var placed = 0;
+  var cfg = DIFFS[currentDiff];
+  while (placed < cfg.mines) {
+    var r = Math.floor(Math.random() * rows);
+    var c = Math.floor(Math.random() * cols);
+    if (board[r][c] === -1) continue;
+    if (Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue;
+    board[r][c] = -1;
+    minePos.push([r, c]);
+    placed++;
+  }
+  // Calc numbers
+  for (var r2 = 0; r2 < rows; r2++) {
+    for (var c2 = 0; c2 < cols; c2++) {
+      if (board[r2][c2] === -1) continue;
+      var count = 0;
+      for (var dr = -1; dr <= 1; dr++) {
+        for (var dc = -1; dc <= 1; dc++) {
+          var nr = r2 + dr, nc = c2 + dc;
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc] === -1) count++;
+        }
+      }
+      board[r2][c2] = count;
+    }
+  }
+}
+
+// ── Render ──
+function renderBoard() {
+  var el = document.getElementById('board');
+  el.innerHTML = '';
+  var sz = cellSize + 'px';
+  var fs = Math.round(cellSize * 0.48) + 'px';
+
+  for (var r = 0; r < rows; r++) {
+    var rowEl = document.createElement('div');
+    rowEl.className = 'row';
+    for (var c = 0; c < cols; c++) {
+      var cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.style.width  = sz;
+      cell.style.height = sz;
+      cell.style.fontSize = fs;
+      cell.setAttribute('data-r', r);
+      cell.setAttribute('data-c', c);
+      cell.onclick = cellClick;
+      rowEl.appendChild(cell);
+    }
+    el.appendChild(rowEl);
+  }
+  updateCells();
+}
+
+function updateCells() {
+  var cells = document.getElementById('board').getElementsByClassName('cell');
+  var idx = 0;
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < cols; c++) {
+      var cell = cells[idx++];
+      var rev  = revealed[r][c];
+      var flag = flagged[r][c];
+      var val  = board[r][c];
+
+      cell.textContent = '';
+      cell.className = 'cell';
+
+      if (flag && !rev) {
+        cell.className = 'cell flagged';
+        cell.textContent = '🚩';
+      } else if (!rev) {
+        cell.className = 'cell hidden';
+      } else if (val === -1) {
+        cell.className = 'cell mine-hit';
+        cell.textContent = '💣';
+      } else {
+        cell.className = 'cell revealed';
+        if (val > 0) {
+          cell.textContent = '' + val;
+          cell.className += ' n' + val;
+        }
+      }
+    }
+  }
+}
+
+// ── Double-click: chord reveal ──
+function cellDblClick() {
+  if (gameState === 'won' || gameState === 'lost') return;
+  var r = parseInt(this.getAttribute('data-r'), 10);
+  var c = parseInt(this.getAttribute('data-c'), 10);
+
+  // Only works on revealed number cells
+  if (!revealed[r][c] || board[r][c] <= 0) return;
+
+  chordReveal(r, c);
+}
+
+function chordReveal(r, c) {
+  var num = board[r][c];
+
+  // Count adjacent flags
+  var adjFlags = 0;
+  for (var dr = -1; dr <= 1; dr++) {
+    for (var dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      var nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && flagged[nr][nc]) {
+        adjFlags++;
+      }
+    }
+  }
+
+  // Only chord if flag count matches the number
+  if (adjFlags !== num) return;
+
+  // Reveal all non-flagged, non-revealed neighbors
+  var hitMine = false;
+  var hitR = -1, hitC = -1;
+  for (var dr2 = -1; dr2 <= 1; dr2++) {
+    for (var dc2 = -1; dc2 <= 1; dc2++) {
+      if (dr2 === 0 && dc2 === 0) continue;
+      var nr2 = r + dr2, nc2 = c + dc2;
+      if (nr2 < 0 || nr2 >= rows || nc2 < 0 || nc2 >= cols) continue;
+      if (revealed[nr2][nc2] || flagged[nr2][nc2]) continue;
+      if (board[nr2][nc2] === -1) {
+        hitMine = true;
+        hitR = nr2; hitC = nc2;
+        revealed[nr2][nc2] = true;
+      } else {
+        floodReveal(nr2, nc2);
+      }
+    }
+  }
+
+  if (hitMine) {
+    gameState = 'lost';
+    stopTimer();
+    revealAllMines(hitR, hitC);
+    updateCells();
+    showOverlay(false, seconds);
+  } else {
+    updateCells();
+    checkWin();
+  }
+}
+
+// ── Click handler ──
+function cellClick() {
+  if (gameState === 'won' || gameState === 'lost') return;
+  var r = parseInt(this.getAttribute('data-r'), 10);
+  var c = parseInt(this.getAttribute('data-c'), 10);
+
+  if (mode === 'flag') {
+    if (revealed[r][c]) return;
+    flagged[r][c] = !flagged[r][c];
+    var flagCount = 0;
+    for (var i = 0; i < rows; i++) {
+      for (var j = 0; j < cols; j++) {
+        if (flagged[i][j]) flagCount++;
+      }
+    }
+    document.getElementById('mine-count').textContent = '' + (totalMines - flagCount);
+    updateCells();
+    return;
+  }
+
+  // Dig mode
+  // If clicking a revealed number cell, try chord
+  if (revealed[r][c]) {
+    if (board[r][c] > 0) chordReveal(r, c);
+    return;
+  }
+  if (flagged[r][c]) return;
+
+  if (firstClick) {
+    firstClick = false;
+    gameState = 'playing';
+    placeMines(r, c);
+    startTimer();
+  }
+
+  if (board[r][c] === -1) {
+    // Hit mine
+    revealed[r][c] = true;
+    gameState = 'lost';
+    stopTimer();
+    revealAllMines(r, c);
+    updateCells();
+    showOverlay(false, seconds);
+    return;
+  }
+
+  floodReveal(r, c);
+  updateCells();
+  checkWin();
+}
+
+function floodReveal(r, c) {
+  if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+  if (revealed[r][c] || flagged[r][c]) return;
+  revealed[r][c] = true;
+  if (board[r][c] === 0) {
+    for (var dr = -1; dr <= 1; dr++) {
+      for (var dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        floodReveal(r + dr, c + dc);
+      }
+    }
+  }
+}
+
+function revealAllMines(hitR, hitC) {
+  for (var i = 0; i < minePos.length; i++) {
+    var r = minePos[i][0], c = minePos[i][1];
+    if (r === hitR && c === hitC) continue;
+    revealed[r][c] = true;
+  }
+}
+
+function checkWin() {
+  var unrevealedSafe = 0;
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < cols; c++) {
+      if (!revealed[r][c] && board[r][c] !== -1) unrevealedSafe++;
+    }
+  }
+  if (unrevealedSafe === 0) {
+    gameState = 'won';
+    stopTimer();
+    showOverlay(true, seconds);
+  }
+}
+
+function showOverlay(won, t) {
+  var ov  = document.getElementById('overlay');
+  var ico = document.getElementById('overlay-icon');
+  var msg = document.getElementById('overlay-msg');
+  var sub = document.getElementById('overlay-sub');
+  if (won) {
+    ico.textContent = '🎉';
+    msg.textContent = '扫雷成功！';
+    sub.textContent = '用时 ' + t + ' 秒';
+    sub.style.color = 'rgba(100,220,140,0.8)';
+  } else {
+    ico.textContent = '💥';
+    msg.textContent = '踩雷了！';
+    sub.textContent = '再接再厉';
+    sub.style.color = 'rgba(240,120,100,0.8)';
+  }
+  ov.className = 'show';
+}
+
+// ── Start ──
+newGame();
+</script>
+</body>
+</html>
